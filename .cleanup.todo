@@ -1,0 +1,5 @@
+- Remove src/integrations/supabase/admin-client.ts (unused)
+- Remove api/health-check.ts (legacy)
+- Remove api/admin/update-password.ts (legacy)
+- Remove src/pages/AdminDashboard.tsx.backup (backup)
+- Remove vercel.json (Render is the target)

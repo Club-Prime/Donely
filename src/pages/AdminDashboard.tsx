@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Users, 
   FolderOpen, 
@@ -9,6 +10,7 @@ import {
   FileText, 
   Camera,
   ChevronRight,
+  Activity,
   LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -154,12 +156,52 @@ export const AdminDashboard = () => {
         </Button>
       </div>
 
-      {/* Métricas resumidas removidas para simplificar a tela */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Activity className="h-4 w-4 text-green-500" />
+              <span className="text-sm text-muted-foreground">Status</span>
+            </div>
+            <p className="text-2xl font-bold text-green-600">Ativo</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4 text-blue-500" />
+              <span className="text-sm text-muted-foreground">Clientes</span>
+            </div>
+            <p className="text-2xl font-bold">{statsLoading ? '...' : stats.clients}</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <FolderOpen className="h-4 w-4 text-purple-500" />
+              <span className="text-sm text-muted-foreground">Projetos</span>
+            </div>
+            <p className="text-2xl font-bold">{statsLoading ? '...' : stats.projects}</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Camera className="h-4 w-4 text-orange-500" />
+              <span className="text-sm text-muted-foreground">Evidências</span>
+            </div>
+            <p className="text-2xl font-bold">{statsLoading ? '...' : stats.evidences}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Fluxo de Navegação Hierárquico</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {navigationItems.map((item) => {
+          {navigationItems.map((item, index) => {
             const IconComponent = item.icon;
             return (
               <Card 
@@ -172,6 +214,9 @@ export const AdminDashboard = () => {
                     <div className={`p-2 rounded-lg ${item.color} bg-opacity-10`}>
                       <IconComponent className="h-6 w-6 text-white" />
                     </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {String(index + 1).padStart(2, '0')}
+                    </Badge>
                   </div>
                   <div className="space-y-1">
                     <CardTitle className="text-lg">{item.title}</CardTitle>
@@ -182,7 +227,16 @@ export const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{item.stats}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {item.stats}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

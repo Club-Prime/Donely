@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { supabaseAdmin } from '@/integrations/supabase/admin-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -634,41 +633,34 @@ export const ClientsPage = () => {
     try {
       console.log('Iniciando alteração direta de senha para:', passwordClient.email);
       
-      // Usar cliente admin para alterar senha diretamente
-      const { error: adminError } = await supabaseAdmin.auth.admin.updateUserById(
-        passwordClient.user_id,
-        { password: newPassword }
-      );
-
-      if (adminError) {
-        console.error('Erro ao usar client admin:', adminError);
-        
-        // Fallback: usar método de reset por email
-        console.log('Tentando método de reset por email como fallback...');
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-          passwordClient.email,
-          {
-            redirectTo: `${window.location.origin}/auth/callback`
-          }
-        );
-
-        if (resetError) {
-          throw resetError;
-        }
-
-        toast({
-          title: "Email de redefinição enviado",
-          description: `Não foi possível alterar diretamente. Um email foi enviado para ${passwordClient.email} com link para redefinir a senha.`,
-          variant: "default"
-        });
-      } else {
-        // Sucesso na alteração direta
-        console.log('Senha alterada diretamente com sucesso');
-        toast({
-          title: "Senha alterada com sucesso!",
-          description: `A senha do cliente ${passwordClient.name} foi atualizada diretamente.`
-        });
+      // Chamar API serverless segura passando token do admin no header
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error('Sessão inválida. Faça login novamente.');
       }
+
+      // Chamar Supabase Edge Function (update-password)
+      const { error: fnError } = await supabase.functions.invoke('update-password', {
+        body: {
+          userId: passwordClient.user_id,
+          newPassword,
+        },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (fnError) {
+        throw new Error(fnError.message || 'Falha ao alterar senha');
+      }
+
+      toast({
+        title: 'Senha alterada com sucesso!',
+        description: `A senha do cliente ${passwordClient.name} foi atualizada diretamente.`,
+      });
 
       setShowPasswordForm(false);
       setPasswordClient(null);
@@ -678,11 +670,30 @@ export const ClientsPage = () => {
     } catch (error) {
       console.error('Erro ao alterar senha:', error);
       
-      toast({
-        title: "Erro",
-        description: "Não foi possível alterar a senha. Verifique a configuração da chave service_role no arquivo admin-client.ts",
-        variant: "destructive"
-      });
+      // Fallback: fluxo de reset por email
+      try {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+          passwordClient.email,
+          {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          }
+        );
+
+        if (resetError) throw resetError;
+
+        toast({
+          title: 'Email de redefinição enviado',
+          description: `Não foi possível alterar diretamente. Um email foi enviado para ${passwordClient.email} com link para redefinir a senha.`,
+          variant: 'default',
+        });
+      } catch (fallbackErr) {
+        toast({
+          title: 'Erro',
+          description:
+            'Não foi possível alterar a senha. Verifique a configuração do servidor (service_role) e tente novamente.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 

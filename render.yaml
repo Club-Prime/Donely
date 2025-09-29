@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: donely-frontend
+    env: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false # set in Render Dashboard
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false # set in Render Dashboard
