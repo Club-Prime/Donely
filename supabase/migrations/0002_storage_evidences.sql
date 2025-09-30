@@ -1,5 +1,10 @@
 -- 0002_storage_evidences.sql
 -- Cria bucket e policies para evidences
+--
+-- IMPORTANTE: Este script precisa ser executado como Owner no Supabase SQL Editor
+-- (botão "Run as owner"). Alterações na tabela storage.objects e criação de
+-- policies no schema storage exigem privilégio de owner; caso contrário você verá
+-- o erro: 42501: must be owner of table objects.
 
 -- Bucket idempotente
 insert into storage.buckets (id, name, public)
