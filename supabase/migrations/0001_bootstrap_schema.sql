@@ -263,17 +263,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER IF NOT EXISTS update_profiles_updated_at BEFORE UPDATE ON public.profiles
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER IF NOT EXISTS update_projects_updated_at BEFORE UPDATE ON public.projects
+DROP TRIGGER IF EXISTS update_projects_updated_at ON public.projects;
+CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON public.projects
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER IF NOT EXISTS update_sprints_updated_at BEFORE UPDATE ON public.sprints
+DROP TRIGGER IF EXISTS update_sprints_updated_at ON public.sprints;
+CREATE TRIGGER update_sprints_updated_at BEFORE UPDATE ON public.sprints
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER IF NOT EXISTS update_roadmap_items_updated_at BEFORE UPDATE ON public.roadmap_items
+DROP TRIGGER IF EXISTS update_roadmap_items_updated_at ON public.roadmap_items;
+CREATE TRIGGER update_roadmap_items_updated_at BEFORE UPDATE ON public.roadmap_items
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER IF NOT EXISTS update_reports_updated_at BEFORE UPDATE ON public.reports
+DROP TRIGGER IF EXISTS update_reports_updated_at ON public.reports;
+CREATE TRIGGER update_reports_updated_at BEFORE UPDATE ON public.reports
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER IF NOT EXISTS update_comments_updated_at BEFORE UPDATE ON public.comments
+DROP TRIGGER IF EXISTS update_comments_updated_at ON public.comments;
+CREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON public.comments
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Índices
