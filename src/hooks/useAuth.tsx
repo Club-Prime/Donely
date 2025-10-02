@@ -165,18 +165,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
+      
+      // Limpeza agressiva de todos os storages
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Limpar cookies específicos do Supabase (se existirem)
+      document.cookie.split(";").forEach((c) => {
+        const eqPos = c.indexOf("=");
+        const name = eqPos > -1 ? c.substr(0, eqPos) : c;
+        document.cookie = `${name.trim()}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        document.cookie = `${name.trim()}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.supabase.co`;
+        document.cookie = `${name.trim()}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+      });
+
       setUser(null);
       setProfile(null);
       setSession(null);
+      
       toast({
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso.",
       });
     } catch (error) {
       console.error('Error signing out:', error);
+      
+      // Mesmo com erro, force a limpeza
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      
       toast({
-        title: "Erro",
-        description: "Erro ao fazer logout.",
+        title: "Logout forçado",
+        description: "Sessão limpa localmente.",
         variant: "destructive",
       });
     }

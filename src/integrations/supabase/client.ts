@@ -20,5 +20,13 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    storageKey: 'donely-auth-token', // Custom key para evitar conflitos
+    flowType: 'implicit', // Evita redirect flows que podem usar cookies
+    detectSessionInUrl: false, // Desabilita detecção via URL
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'donely-app', // Identificação customizada
+    },
   }
 });
