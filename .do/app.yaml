@@ -1,0 +1,38 @@
+# DigitalOcean App Spec for Donely
+# Deploy: doctl apps create --spec .do/app.yaml
+
+name: donely
+static_sites:
+- name: frontend
+  source_dir: /
+  github:
+    repo: Club-Prime/Donely
+    branch: main
+    deploy_on_push: true
+  
+  build_command: npm ci && npm run build
+  output_dir: /dist
+  
+  # Environment variables for build
+  envs:
+  - key: NODE_ENV
+    value: production
+    scope: BUILD_TIME
+  - key: VITE_SUPABASE_URL
+    value: "https://mjrkqbyxkadoibwxsmeb.supabase.co"
+    scope: BUILD_TIME
+  - key: VITE_SUPABASE_PUBLISHABLE_KEY
+    value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qcmtxYnl4a2Fkb2lid3hzbWViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxOTU2NjMsImV4cCI6MjA3NDc3MTY2M30.rd72G0yCyYagoNo-WENNtOHkzsvEA3FAQJTFgINTPSk"
+    scope: BUILD_TIME
+  
+  # SPA routing - all routes go to index.html
+  routes:
+  - path: /
+  - path: /[^.]*
+    type: rewrite
+    target: /index.html
+
+# Optional: Add alerts for monitoring
+alerts:
+- rule: DEPLOYMENT_FAILED
+- rule: DOMAIN_FAILED

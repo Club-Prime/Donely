@@ -1,15 +1,8 @@
-services:
-  - type: web
-    name: donely-frontend
-    env: static
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_SUPABASE_URL
-        sync: false # set in Render Dashboard
-      - key: VITE_SUPABASE_PUBLISHABLE_KEY
-        sync: false # set in Render Dashboard
+# DEPRECATED: This file was for Render deployment
+# DigitalOcean deployment config is now in .do/app.yaml
+# 
+# For reference, the old Render static site config was:
+# - Build: npm ci && npm run build  
+# - Publish: dist/
+# - SPA rewrite: /* -> /index.html
+# - Env vars: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY
