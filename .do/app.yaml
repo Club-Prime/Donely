@@ -19,10 +19,10 @@ static_sites:
     value: production
     scope: BUILD_TIME
   - key: VITE_SUPABASE_URL
-    value: "https://mjrkqbyxkadoibwxsmeb.supabase.co"
+    value: "https://mwtuixdmiahthqeswdqb.supabase.co"
     scope: BUILD_TIME
   - key: VITE_SUPABASE_PUBLISHABLE_KEY
-    value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qcmtxYnl4a2Fkb2lid3hzbWViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxOTU2NjMsImV4cCI6MjA3NDc3MTY2M30.rd72G0yCyYagoNo-WENNtOHkzsvEA3FAQJTFgINTPSk"
+    value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13dHVpeGRtaWFodGhxZXN3ZHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyOTU3NjksImV4cCI6MjA3Mzg3MTc2OX0.KDDkP454yMNqylBf5e9Djyqd9F0hUd4g98ujS3qrmGc"
     scope: BUILD_TIME
   
   # SPA routing - all routes go to index.html
