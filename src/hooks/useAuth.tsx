@@ -166,6 +166,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       await supabase.auth.signOut();
       
+      // Limpar tokens duplicados específicos primeiro
+      localStorage.removeItem('donely-auth-token');
+      localStorage.removeItem('sb-mwtuixdmiahthqeswdqb-auth-token');
+      
       // Limpeza agressiva de todos os storages
       localStorage.clear();
       sessionStorage.clear();

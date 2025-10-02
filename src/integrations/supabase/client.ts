@@ -17,16 +17,19 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: {
+      getItem: (key: string) => localStorage.getItem('donely-auth-token'),
+      setItem: (key: string, value: string) => localStorage.setItem('donely-auth-token', value),
+      removeItem: (key: string) => localStorage.removeItem('donely-auth-token'),
+    },
     persistSession: true,
     autoRefreshToken: true,
-    storageKey: 'donely-auth-token', // Custom key para evitar conflitos
-    flowType: 'implicit', // Evita redirect flows que podem usar cookies
-    detectSessionInUrl: false, // Desabilita detecção via URL
+    flowType: 'implicit',
+    detectSessionInUrl: false,
   },
   global: {
     headers: {
-      'X-Client-Info': 'donely-app', // Identificação customizada
+      'X-Client-Info': 'donely-app',
     },
   }
 });
