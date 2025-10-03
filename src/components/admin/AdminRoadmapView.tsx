@@ -162,7 +162,19 @@ export function AdminRoadmapView() {
   });
 
   useEffect(() => {
-    fetchRoadmapItems();
+    // Timeout de segurança: força loading=false após 15 segundos
+    const safetyTimeout = setTimeout(() => {
+      console.log('⚠️ AdminRoadmapView: Timeout de segurança ativado - forçando loading=false');
+      setLoading(false);
+    }, 15000);
+
+    fetchRoadmapItems().finally(() => {
+      clearTimeout(safetyTimeout);
+    });
+
+    return () => {
+      clearTimeout(safetyTimeout);
+    };
   }, [selectedProject?.id]);
 
   const fetchRoadmapItems = async () => {
@@ -174,25 +186,34 @@ export function AdminRoadmapView() {
     
     console.log('🔄 AdminRoadmapView: Buscando itens para projeto:', selectedProject.id);
     
+    // Timeout de 10 segundos para evitar travamento
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout: A requisição demorou mais que 10 segundos')), 10000);
+    });
+    
     try {
-      const { data, error } = await supabase
+      const queryPromise = supabase
         .from('roadmap_items')
         .select('*')
         .eq('project_id', selectedProject.id)
         .order('order_index', { ascending: true });
 
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
       if (error) throw error;
       setItems(data || []);
       console.log('✅ AdminRoadmapView: Itens carregados:', data?.length || 0);
     } catch (error) {
-      console.error('Erro ao buscar itens do roadmap:', error);
+      console.error('❌ AdminRoadmapView: Erro ao buscar itens:', error);
+      setItems([]); // Garantir que sempre há um estado válido
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar os itens do roadmap.",
+        title: "Erro ao carregar roadmap",
+        description: error instanceof Error ? error.message : "Não foi possível carregar os itens do roadmap.",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
+      console.log('🏁 AdminRoadmapView: Loading finalizado');
     }
   };
 

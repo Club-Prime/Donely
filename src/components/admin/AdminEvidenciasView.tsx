@@ -69,14 +69,32 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchEvidences();
-    fetchReports();
+    // Timeout de segurança: força loading=false após 15 segundos
+    const safetyTimeout = setTimeout(() => {
+      console.log('⚠️ AdminEvidenciasView: Timeout de segurança ativado - forçando loading=false');
+      setLoading(false);
+    }, 15000);
+
+    Promise.all([fetchEvidences(), fetchReports()]).finally(() => {
+      clearTimeout(safetyTimeout);
+    });
+
+    return () => {
+      clearTimeout(safetyTimeout);
+    };
   }, [projectId]);
 
   const fetchEvidences = async () => {
+    console.log('🔄 AdminEvidenciasView: Buscando evidências para projeto:', projectId);
+    
+    // Timeout de 10 segundos para evitar travamento
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout: A requisição de evidências demorou mais que 10 segundos')), 10000);
+    });
+    
     try {
       // Buscar evidências através dos reports do projeto
-      const { data, error } = await supabase
+      const queryPromise = supabase
         .from('evidences')
         .select(`
           *,
@@ -91,17 +109,19 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
         .eq('reports.project_id', projectId)
         .order('created_at', { ascending: false });
 
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
       if (error) throw error;
       setEvidences(data || []);
+      console.log('✅ AdminEvidenciasView: Evidências carregadas:', data?.length || 0);
     } catch (error) {
-      console.error('Erro ao buscar evidências:', error);
+      console.error('❌ AdminEvidenciasView: Erro ao buscar evidências:', error);
+      setEvidences([]); // Garantir que sempre há um estado válido
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar as evidências",
+        title: "Erro ao carregar evidências",
+        description: error instanceof Error ? error.message : "Não foi possível carregar as evidências",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
   };
 
