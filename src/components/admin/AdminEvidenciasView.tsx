@@ -515,10 +515,10 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
                     const sprintId = reports.find(r => r.id === uploadData.reportId)?.sprint_id;
                     const tasks = sprintId ? (tasksBySprint[sprintId] || []) : [];
                     if (!sprintId) {
-                      return <SelectItem value="" disabled>Nenhuma sprint definida para este relatório</SelectItem>;
+                      return <SelectItem value="no-sprint" disabled>Nenhuma sprint definida para este relatório</SelectItem>;
                     }
                     if (tasks.length === 0) {
-                      return <SelectItem value="" disabled>Sem tarefas cadastradas nesta sprint</SelectItem>;
+                      return <SelectItem value="no-tasks" disabled>Sem tarefas cadastradas nesta sprint</SelectItem>;
                     }
                     return tasks.map(t => (
                       <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
