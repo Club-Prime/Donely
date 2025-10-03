@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { LoginPage } from '@/components/auth/LoginPage';
+import { CacheCleanupService } from '@/lib/cacheCleanup';
 
 const Index = () => {
   const { user, profile, session, loading, signOut } = useAuth();
@@ -12,6 +13,36 @@ const Index = () => {
   const lastStateRef = useRef<string>('');
   const stuckCounterRef = useRef(0);
   const performanceStartRef = useRef(Date.now());
+  const cacheIssueDetectedRef = useRef(false);
+
+  // Detectar problemas de cache/cookies no início
+  useEffect(() => {
+    const detectCacheIssues = () => {
+      // Verificar se há cookies problemáticos
+      const problematicPatterns = [
+        '__cf_bm', 'sb-mwtuixdmiahthqeswdqb-auth-token', 'cf_clearance'
+      ];
+      
+      const hasCacheIssues = problematicPatterns.some(pattern => 
+        document.cookie.includes(pattern)
+      );
+
+      // Verificar se há múltiplos tokens no localStorage
+      const authTokens = Object.keys(localStorage).filter(key => 
+        key.includes('auth') || key.includes('token') || key.includes('sb-')
+      );
+
+      if (hasCacheIssues || authTokens.length > 2) {
+        console.log('⚠️ Index: Problemas de cache/cookies detectados:', {
+          problematicCookies: problematicPatterns.filter(p => document.cookie.includes(p)),
+          authTokens: authTokens
+        });
+        cacheIssueDetectedRef.current = true;
+      }
+    };
+
+    detectCacheIssues();
+  }, []);
 
   // Prefer role from profile; fallback to session.user.user_metadata.role to avoid UI "travar" ao voltar para 
   // a home enquanto o perfil ainda carrega.
@@ -58,39 +89,47 @@ const Index = () => {
     setIsRecovering(true);
     setRecoveryAttempts(prev => prev + 1);
     
-    console.log(`🛠️ Index: Tentativa de recuperação ${recoveryAttempts + 1}/3`);
+    console.log(`🛠️ Index: Tentativa de recuperação ${recoveryAttempts + 1}/3 - Limpeza específica`);
     
     try {
-      // Limpeza agressiva de todos os dados
-      localStorage.clear();
-      sessionStorage.clear();
+      // Primeira tentativa: limpeza específica de cookies problemáticos
+      if (recoveryAttempts === 0) {
+        console.log('🧹 Index: Limpeza seletiva de cookies/cache...');
+        await CacheCleanupService.clearProblematicCookies();
+        await CacheCleanupService.clearStorage();
+      }
       
-      // Limpar cookies
-      document.cookie.split(";").forEach((c) => {
-        const eqPos = c.indexOf("=");
-        const name = eqPos > -1 ? c.substr(0, eqPos) : c;
-        document.cookie = `${name.trim()}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-      });
+      // Segunda tentativa: limpeza completa
+      else if (recoveryAttempts === 1) {
+        console.log('🧹 Index: Limpeza completa do cache...');
+        await CacheCleanupService.performFullCleanup({
+          includeBrowserCache: true,
+          includeServiceWorkers: true,
+          includeIndexedDB: true,
+          verbose: true
+        });
+      }
       
-      // Força logout
+      // Terceira tentativa: força reload com cache busting
+      else {
+        console.log('🔄 Index: Força reload com cache busting...');
+        CacheCleanupService.forceReload();
+        return;
+      }
+      
+      // Força logout após limpeza
       await signOut();
       
       // Reset estados
       setLoadingTimeout(true);
       stuckCounterRef.current = 0;
       
-      // Se já tentou 3 vezes, recarrega a página completamente
-      if (recoveryAttempts >= 2) {
-        console.log('🔄 Index: Múltiplas tentativas falharam, recarregando página...');
-        window.location.reload();
-        return;
-      }
-      
     } catch (error) {
       console.error('❌ Index: Erro na recuperação de emergência:', error);
-      window.location.reload();
+      // Em caso de erro, vai direto para reload com cache busting
+      CacheCleanupService.forceReload();
     } finally {
-      setTimeout(() => setIsRecovering(false), 2000);
+      setTimeout(() => setIsRecovering(false), 3000); // Mais tempo para operações assíncronas
     }
   };
 
@@ -129,7 +168,13 @@ const Index = () => {
             </div>
             <div className="text-xs text-gray-400">
               Tempo: {totalTime}s | Estados: {stuckCounterRef.current}
+              {cacheIssueDetectedRef.current && ' | 🍪 Cache'}
             </div>
+            {cacheIssueDetectedRef.current && (
+              <div className="text-xs text-orange-400 max-w-md mx-auto">
+                🍪 Problemas de cookies/cache detectados - Sistema de limpeza ativo
+              </div>
+            )}
             {totalTime > 10 && (
               <div className="text-xs text-yellow-400 max-w-md mx-auto">
                 ⚠️ Carregamento demorado detectado. Sistema de recuperação ativo.
