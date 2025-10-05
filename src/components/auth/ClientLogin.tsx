@@ -21,7 +21,6 @@ interface LoginForm {
 export const ClientLogin = ({ onBack }: ClientLoginProps) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [debugMode, setDebugMode] = useState(false);
   const { signIn } = useAuth();
   const { toast } = useToast();
 
@@ -279,17 +278,6 @@ export const ClientLogin = ({ onBack }: ClientLoginProps) => {
                 disabled={loading}
               >
                 {loading ? 'Entrando...' : 'Acessar Projeto'}
-              </Button>
-              
-              {/* Debug button - remove in production */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full text-xs"
-                onClick={debugUsers}
-              >
-                🐛 Debug: Listar Clientes (Console)
               </Button>
             </form>
           </CardContent>

@@ -49,27 +49,46 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('Fetching profile for user ID:', userId);
-      const { data, error } = await supabase
+      console.log('🔍 Fetching profile for user ID:', userId);
+      console.log('🔍 Supabase client:', !!supabase);
+
+      // Criar uma promise com timeout
+      const queryPromise = supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout')), 5000); // 5 segundos timeout
+      });
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
+      console.log('🔍 Query result - data:', data);
+      console.log('🔍 Query result - error:', error);
+
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
+        console.error('❌ Error details:', error.message, error.details, error.hint);
         return null;
       }
 
       if (!data) {
-        console.log('No profile found for user ID:', userId);
+        console.log('⚠️ No profile found for user ID:', userId);
+        console.log('⚠️ This might indicate the profile table is empty or user_id mismatch');
         return null;
       }
 
-      console.log('Profile found:', data);
+      console.log('✅ Profile found:', data);
+      console.log('✅ Profile role:', data.role);
       return data as Profile;
-    } catch (error) {
-      console.error('Error in fetchProfile:', error);
+    } catch (error: any) {
+      console.error('💥 Exception in fetchProfile:', error);
+      console.error('💥 Error message:', error.message);
+      if (error.message === 'Query timeout') {
+        console.warn('⚠️ Profile fetch timed out - allowing access without profile');
+      }
       return null;
     }
   };
@@ -82,40 +101,65 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    const handleSession = async (session: Session | null) => {
+      console.log('🔄 handleSession called with session:', !!session);
+      if (!mounted) return;
+
+      const currentUser = session?.user ?? null;
+      const currentSession = session;
+
+      console.log('🔄 Setting user and session:', !!currentUser, !!currentSession);
+      setSession(currentSession);
+      setUser(currentUser);
+
+      try {
+        if (currentUser) {
+          console.log('🔄 Fetching profile for user:', currentUser.id);
+          const profileData = await fetchProfile(currentUser.id);
+          console.log('🔄 Profile fetch result:', !!profileData);
+          if (mounted) {
+            setProfile(profileData);
+            setLoading(false);
+            console.log('✅ Loading set to false (with user)');
+          }
+        } else {
+          console.log('🔄 No user, setting profile to null');
+          if (mounted) {
+            setProfile(null);
+            setLoading(false);
+            console.log('✅ Loading set to false (no user)');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error in handleSession:', error);
+        // Mesmo com erro, permitir que o usuário continue sem perfil
+        if (mounted) {
+          setProfile(null);
+          setLoading(false);
+          console.log('✅ Loading set to false (error - allowing access without profile)');
+        }
+      }
+    };
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          // Fetch profile data
-          const profileData = await fetchProfile(session.user.id);
-          setProfile(profileData);
-          setLoading(false);
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
+        console.log('Auth state changed:', event, session?.user?.email);
+        await handleSession(session);
       }
     );
 
-    // Check for existing session
+    // Check for existing session only once
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchProfile(session.user.id).then((profileData) => {
-          setProfile(profileData);
-          setLoading(false);
-        });
-      } else {
-        setLoading(false);
-      }
+      handleSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

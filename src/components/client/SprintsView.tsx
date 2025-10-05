@@ -329,7 +329,7 @@ export const SprintsView = ({ projectId }: SprintsViewProps) => {
             {reportLoading ? (
               <div className="h-32 bg-muted animate-pulse rounded" />
             ) : (
-              <pre className="whitespace-pre-wrap text-sm text-foreground/90">
+              <pre className="whitespace-pre-wrap text-sm text-foreground">
                 {selectedReport?.content_md || 'Sem conteúdo.'}
               </pre>
             )}

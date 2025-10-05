@@ -29,9 +29,11 @@ export const AdminLogin = ({ onBack }: AdminLoginProps) => {
     setLoading(true);
     
     try {
+      console.log('Tentando login com:', data.email);
       const { error } = await signIn(data.email, data.password);
       
       if (error) {
+        console.error('Erro no login:', error);
         toast({
           title: "Erro no login",
           description: error,
@@ -44,9 +46,10 @@ export const AdminLogin = ({ onBack }: AdminLoginProps) => {
         });
       }
     } catch (error) {
+      console.error('Erro inesperado:', error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro inesperado. Tente novamente.",
+        description: `Erro inesperado: ${error instanceof Error ? error.message : 'Tente novamente'}`,
         variant: "destructive",
       });
     } finally {

@@ -64,6 +64,8 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
   const [uploadData, setUploadData] = useState({
     reportId: '',
     sprintTaskId: '',
+    name: '',
+    status: 'DONE' as 'NOT_STARTED' | 'IN_PROGRESS' | 'DONE',
     files: [] as File[]
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,36 +89,62 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
   const fetchEvidences = async () => {
     console.log('🔄 AdminEvidenciasView: Buscando evidências para projeto:', projectId);
     
-    // Timeout de 10 segundos para evitar travamento
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout: A requisição de evidências demorou mais que 10 segundos')), 10000);
-    });
-    
     try {
-      // Buscar evidências através dos reports do projeto
-      const queryPromise = supabase
+      // PRIMEIRA ETAPA: Buscar reports do projeto
+      console.log('1️⃣ Buscando reports do projeto...');
+      const { data: reportsData, error: reportsError } = await supabase
+        .from('reports')
+        .select('id, title, sprint_id')
+        .eq('project_id', projectId);
+
+      if (reportsError) {
+        console.error('❌ Erro ao buscar reports:', reportsError);
+        throw reportsError;
+      }
+
+      console.log('📝 Reports encontrados:', reportsData?.length || 0, reportsData);
+
+      if (!reportsData || reportsData.length === 0) {
+        console.log('ℹ️ Nenhum report encontrado para o projeto');
+        setEvidences([]);
+        setLoading(false);
+        return;
+      }
+
+      // SEGUNDA ETAPA: Buscar evidências dos reports encontrados
+      console.log('2️⃣ Buscando evidências dos reports...');
+      const reportIds = reportsData.map(report => report.id);
+      
+      const { data: evidencesData, error: evidencesError } = await supabase
         .from('evidences')
-        .select(`
-          *,
-          reports!inner(
-            id,
-            title,
-            sprint_id,
-            project_id,
-            sprints(sprint_number)
-          )
-        `)
-        .eq('reports.project_id', projectId)
+        .select('*')
+        .in('report_id', reportIds)
         .order('created_at', { ascending: false });
 
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      if (evidencesError) {
+        console.error('❌ Erro ao buscar evidências:', evidencesError);
+        throw evidencesError;
+      }
 
-      if (error) throw error;
-      setEvidences(data || []);
-      console.log('✅ AdminEvidenciasView: Evidências carregadas:', data?.length || 0);
+      // TERCEIRA ETAPA: Enriquecer evidências com dados dos reports
+      const enrichedEvidences = (evidencesData || []).map((evidence) => ({
+        ...evidence,
+        reports: {
+          id: evidence.report_id,
+          title: reportsData.find(r => r.id === evidence.report_id)?.title || 'Sem título',
+          sprint_id: reportsData.find(r => r.id === evidence.report_id)?.sprint_id || '',
+          project_id: projectId
+        }
+      }));
+
+      setEvidences(enrichedEvidences);
+      console.log('✅ AdminEvidenciasView: Evidências carregadas com sucesso:', enrichedEvidences.length);
+      setLoading(false);
+      
     } catch (error) {
       console.error('❌ AdminEvidenciasView: Erro ao buscar evidências:', error);
       setEvidences([]); // Garantir que sempre há um estado válido
+      setLoading(false);
       toast({
         title: "Erro ao carregar evidências",
         description: error instanceof Error ? error.message : "Não foi possível carregar as evidências",
@@ -283,7 +311,9 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
             mime_type: file.type,
             size_bytes: file.size,
             uploaded_by: userId,
-            sprint_task_id: uploadData.sprintTaskId || null
+            sprint_task_id: uploadData.sprintTaskId || null,
+            name: uploadData.name || null,
+            status: uploadData.status
           }]);
 
         if (dbError) throw dbError;
@@ -295,7 +325,7 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
       });
 
       // Reset form
-  setUploadData({ reportId: '', sprintTaskId: '', files: [] });
+      setUploadData({ reportId: '', sprintTaskId: '', name: '', status: 'NOT_STARTED', files: [] });
       setShowAddModal(false);
       fetchEvidences();
 
@@ -492,7 +522,7 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
           <div className="space-y-6">
             {/* Report Selection */}
             <div className="space-y-2">
-              <Label htmlFor="report-select">Relatório</Label>
+              <Label htmlFor="report-select">Relatório *</Label>
               <Select
                 value={uploadData.reportId}
                 onValueChange={async (value) => {
@@ -502,7 +532,7 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um relatório para anexar as evidências" />
+                  <SelectValue placeholder="Selecione o relatório desta sprint" />
                 </SelectTrigger>
                 <SelectContent>
                   {reports.map((report) => (
@@ -517,18 +547,52 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Obrigatório: Selecione o relatório da sprint onde esta evidência foi produzida
+              </p>
+            </div>
+
+            {/* Evidence Name */}
+            <div className="space-y-2">
+              <Label htmlFor="evidence-name">Nome da Evidência</Label>
+              <Input
+                id="evidence-name"
+                value={uploadData.name}
+                onChange={(e) => setUploadData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Digite um nome descritivo para esta evidência"
+              />
+            </div>
+
+            {/* Status Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="status-select">Status</Label>
+              <Select
+                value={uploadData.status}
+                onValueChange={(value: 'NOT_STARTED' | 'IN_PROGRESS' | 'DONE') => 
+                  setUploadData(prev => ({ ...prev, status: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status da evidência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NOT_STARTED">Não Iniciado</SelectItem>
+                  <SelectItem value="IN_PROGRESS">Em Progresso</SelectItem>
+                  <SelectItem value="DONE">Concluído</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Sprint Task Selection */}
             <div className="space-y-2">
-              <Label htmlFor="task-select">Tarefa Executada (opcional)</Label>
+              <Label htmlFor="task-select">Tarefa Específica (opcional)</Label>
               <Select
                 value={uploadData.sprintTaskId}
                 onValueChange={(value) => setUploadData(prev => ({ ...prev, sprintTaskId: value }))}
                 disabled={!uploadData.reportId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Vincule a evidência a uma tarefa desta sprint" />
+                  <SelectValue placeholder="Vincule a evidência a uma tarefa específica desta sprint" />
                 </SelectTrigger>
                 <SelectContent>
                   {(() => {
@@ -540,12 +604,22 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
                     if (tasks.length === 0) {
                       return <SelectItem value="no-tasks" disabled>Sem tarefas cadastradas nesta sprint</SelectItem>;
                     }
-                    return tasks.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                    ));
+                    return [
+                      <SelectItem key="general" value="">
+                        📋 Evidência geral da sprint (não vinculada a tarefa específica)
+                      </SelectItem>,
+                      ...tasks.map(t => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.status === 'DONE' ? '✅' : t.status === 'IN_PROGRESS' ? '🔄' : '⏳'} {t.title}
+                        </SelectItem>
+                      ))
+                    ];
                   })()}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Opcional: Vincule a evidência a uma tarefa específica ou deixe como evidência geral da sprint
+              </p>
             </div>
 
             {/* File Upload */}
@@ -613,7 +687,7 @@ export const AdminEvidenciasView = ({ projectId }: AdminEvidenciasViewProps) => 
                 variant="outline"
                 onClick={() => {
                   setShowAddModal(false);
-                  setUploadData({ reportId: '', sprintTaskId: '', files: [] });
+                  setUploadData({ reportId: '', sprintTaskId: '', name: '', status: 'NOT_STARTED', files: [] });
                 }}
               >
                 Cancelar

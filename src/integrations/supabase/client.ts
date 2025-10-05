@@ -23,7 +23,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       removeItem: (key: string) => localStorage.removeItem('donely-auth-token'),
     },
     persistSession: true,
-    autoRefreshToken: true,
+    autoRefreshToken: false, // Desabilitar auto refresh para desenvolvimento
     flowType: 'implicit',
     detectSessionInUrl: false,
   },

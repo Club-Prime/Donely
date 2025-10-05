@@ -135,6 +135,7 @@ export type Database = {
           created_at: string | null
           id: string
           mime_type: string | null
+          name: string | null
           report_id: string
           sprint_task_id: string | null
           size_bytes: number | null
@@ -148,6 +149,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           mime_type?: string | null
+          name?: string | null
           report_id: string
           sprint_task_id?: string | null
           size_bytes?: number | null
@@ -161,6 +163,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           mime_type?: string | null
+          name?: string | null
           report_id?: string
           sprint_task_id?: string | null
           size_bytes?: number | null
@@ -185,6 +188,54 @@ export type Database = {
             referencedRelation: "sprint_tasks"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      comment_replies: {
+        Row: {
+          id: string
+          comment_id: string
+          author_user_id: string
+          content_md: string
+          is_from_admin: boolean
+          is_visible: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          comment_id: string
+          author_user_id: string
+          content_md: string
+          is_from_admin?: boolean
+          is_visible?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          comment_id?: string
+          author_user_id?: string
+          content_md?: string
+          is_from_admin?: boolean
+          is_visible?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_replies_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_replies_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
         ]
       }
       profiles: {
@@ -381,6 +432,7 @@ export type Database = {
           id: string
           planned_scope: Json | null
           project_id: string
+          roadmap_item_id: string | null
           sprint_number: number
           status: Database["public"]["Enums"]["sprint_status"] | null
           updated_at: string | null
@@ -392,6 +444,7 @@ export type Database = {
           id?: string
           planned_scope?: Json | null
           project_id: string
+          roadmap_item_id?: string | null
           sprint_number: number
           status?: Database["public"]["Enums"]["sprint_status"] | null
           updated_at?: string | null
@@ -403,6 +456,7 @@ export type Database = {
           id?: string
           planned_scope?: Json | null
           project_id?: string
+          roadmap_item_id?: string | null
           sprint_number?: number
           status?: Database["public"]["Enums"]["sprint_status"] | null
           updated_at?: string | null

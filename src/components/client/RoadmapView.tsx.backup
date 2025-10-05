@@ -69,8 +69,6 @@ interface SprintWithContent extends Sprint {
 
 interface RoadmapItemWithDetails extends RoadmapItem {
   sprints: SprintWithContent[];
-  reports: Report[];
-  evidences: Evidence[];
   expanded: boolean;
 }
 
@@ -190,11 +188,9 @@ export const RoadmapView = ({ projectId }: RoadmapViewProps) => {
         // Combinar os dados
         const roadmapItemsWithDetails: RoadmapItemWithDetails[] = (roadmapData || []).map(item => {
           // Encontrar sprints relacionadas ao item do roadmap
-          // Priorizar sprints vinculadas diretamente via roadmap_item_id, depois por proximidade de datas
-          const directlyLinkedSprints = (sprintsData || []).filter(sprint => sprint.roadmap_item_id === item.id);
-          
-          const dateRelatedSprints = (sprintsData || []).filter(sprint => {
-            if (!item.start_date || !item.end_date || sprint.roadmap_item_id) return false; // Já vinculada ou sem datas
+          // Por enquanto, vamos associar baseado na proximidade das datas
+          const relatedSprints = (sprintsData || []).filter(sprint => {
+            if (!item.start_date || !item.end_date) return false;
             
             const itemStart = new Date(item.start_date);
             const itemEnd = new Date(item.end_date);
@@ -204,8 +200,6 @@ export const RoadmapView = ({ projectId }: RoadmapViewProps) => {
             // Verificar se há sobreposição entre as datas
             return itemStart <= sprintEnd && itemEnd >= sprintStart;
           });
-
-          const relatedSprints = [...directlyLinkedSprints, ...dateRelatedSprints];
 
           // Para cada sprint relacionada, associar seus relatórios e evidências
           const sprintsWithContent: SprintWithContent[] = relatedSprints.map(sprint => {
@@ -226,8 +220,6 @@ export const RoadmapView = ({ projectId }: RoadmapViewProps) => {
           return {
             ...item,
             sprints: sprintsWithContent,
-            reports: [],
-            evidences: [],
             expanded: false
           };
         });
@@ -254,6 +246,7 @@ export const RoadmapView = ({ projectId }: RoadmapViewProps) => {
         setLoading(false);
       }
     };
+
     fetchRoadmapWithDetails();
   }, [projectId]);
 

@@ -30,22 +30,46 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const { profile } = useAuth();
 
   useEffect(() => {
-    if (profile?.role === 'CLIENT') {
+    if (profile?.role === 'CLIENT' || profile?.role === 'ADMIN') {
       fetchUserProjects();
     }
   }, [profile]);
 
   const fetchUserProjects = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_user_projects');
+      let data, error;
+      
+      if (profile?.role === 'ADMIN') {
+        // Para admins, buscar todos os projetos
+        const result = await supabase
+          .from('projects')
+          .select('id, name, slug')
+          .order('created_at', { ascending: false });
+        data = result.data;
+        error = result.error;
+      } else {
+        // Para clientes, usar a função RPC existente
+        const result = await supabase.rpc('get_user_projects');
+        data = result.data;
+        error = result.error;
+      }
       
       if (error) throw error;
       
-      const projectList = data.map((item: ProjectData) => ({
-        id: item.project_id,
-        name: item.project_name,
-        slug: item.project_slug
-      }));
+      let projectList;
+      if (profile?.role === 'ADMIN') {
+        projectList = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          slug: item.slug
+        }));
+      } else {
+        projectList = data.map((item: ProjectData) => ({
+          id: item.project_id,
+          name: item.project_name,
+          slug: item.project_slug
+        }));
+      }
       
       setProjects(projectList);
       
