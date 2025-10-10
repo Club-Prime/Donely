@@ -27,10 +27,10 @@ static_sites:
   
   # SPA routing - all routes go to index.html
   routes:
-  - path: /
   - path: /[^.]*
     type: rewrite
     target: /index.html
+  - path: /
 
 # Optional: Add alerts for monitoring
 alerts:
